@@ -20,11 +20,12 @@ import txthings.resource as resource
 import txthings.coap as coap
 
 import functools
-from multiprocessing import Process
+# from multiprocessing import Process
+from threading import Thread
 
 JOYSTICK_DEVICE_NAME = 'Raspberry Pi Sense HAT Joystick'
 sense = SenseHat()
-sense.clear()
+sense.clear((0, 255, 0))
 
 
 class LEDDisplayResource (resource.CoAPResource):
@@ -51,6 +52,7 @@ class LEDDisplayResource (resource.CoAPResource):
             sense.clear(self.colors[self.color])
             payload = "Color updated succesfully"
         else:
+            sense.clear()
             payload = "Invalid color parameter"
             print payload
 
@@ -90,11 +92,15 @@ class JoystickResource (resource.CoAPResource):
             if (event.value == 1 and self.state == 'up'):
                 # print "from " + self.state + " to down"
                 self.state = 'down'
+                # LED to green
+                sense.clear((0, 255, 0))
                 flag = True
             # key up and state down
             if (event.value == 2 and self.state == 'down'):
                 # print "from " + self.state + " to up"
                 self.state = 'up'
+                # LED to red
+                sense.clear((255, 0, 0))
                 flag = True
             if flag:
                 print "state changed to " + self.state
@@ -155,7 +161,7 @@ root.putChild('led', led)
 
 joystick = JoystickResource()
 _bound_joystick_event_loop = functools.partial(_joystick_event_loop, joystick)
-p = Process(target=_bound_joystick_event_loop)
+p = Thread(target=_bound_joystick_event_loop)
 p.daemon = True
 p.start()
 root.putChild('joystick', joystick)
