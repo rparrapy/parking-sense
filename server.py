@@ -25,7 +25,51 @@ from threading import Thread
 
 JOYSTICK_DEVICE_NAME = 'Raspberry Pi Sense HAT Joystick'
 sense = SenseHat()
-sense.clear((0, 255, 0))
+
+
+def get_pixel_map(color):
+    colors = {'red': (255, 0, 0), 'green': (0, 255, 0), 'orange': (255, 165, 0)}
+
+    O = (255, 255, 255)  # White
+    X = colors[color]
+
+    R_PIXEL_MAP = [
+        O, O, X, X, O, O, O, O,
+        O, O, X, O, X, O, O, O,
+        O, O, X, O, O, X, O, O,
+        O, O, X, O, X, O, O, O,
+        O, O, X, X, O, O, O, O,
+        O, O, X, O, X, O, O, O,
+        O, O, X, O, O, X, O, O,
+        O, O, X, O, O, O, X, O
+    ]
+
+    F_PIXEL_MAP = [
+        O, O, X, X, X, X, O, O,
+        O, O, X, O, O, O, O, O,
+        O, O, X, O, O, O, O, O,
+        O, O, X, X, X, X, O, O,
+        O, O, X, O, O, O, O, O,
+        O, O, X, O, O, O, O, O,
+        O, O, X, O, O, O, O, O,
+        O, O, X, O, O, O, O, O
+    ]
+
+    O_PIXEL_MAP = [
+        O, O, O, O, O, O, O, O,
+        O, O, O, X, X, O, O, O,
+        O, O, X, O, O, X, O, O,
+        O, O, X, O, O, X, O, O,
+        O, O, X, O, O, X, O, O,
+        O, O, X, O, O, X, O, O,
+        O, O, O, X, X, O, O, O,
+        O, O, O, O, O, O, O, O
+    ]
+    letters = {'red': O_PIXEL_MAP, 'green': F_PIXEL_MAP, 'orange': R_PIXEL_MAP}
+    return letters[color]
+
+
+sense.set_pixels(get_pixel_map('green'))
 
 
 class LEDDisplayResource (resource.CoAPResource):
@@ -37,7 +81,6 @@ class LEDDisplayResource (resource.CoAPResource):
     def __init__(self, color="green"):
         resource.CoAPResource.__init__(self)
         self.color = color
-        self.colors = {'red': (255, 0, 0), 'green': (0, 255, 0), 'orange': (255, 165, 0)}
         self.visible = True
 
     def render_GET(self, request):
@@ -49,7 +92,8 @@ class LEDDisplayResource (resource.CoAPResource):
         payload = ""
         if request.payload in self.colors.keys():
             self.color = request.payload
-            sense.clear(self.colors[self.color])
+            sense.set_pixels(get_pixel_map(self.color))
+            # sense.clear(self.colors[self.color])
             payload = "Color updated succesfully"
         else:
             sense.clear()
@@ -93,14 +137,16 @@ class JoystickResource (resource.CoAPResource):
                 # print "from " + self.state + " to down"
                 self.state = 'down'
                 # LED to green
-                sense.clear((0, 255, 0))
+                # sense.clear((0, 255, 0))
+                sense.set_pixels(get_pixel_map('green'))
                 flag = True
             # key up and state down
             if (event.value == 2 and self.state == 'down'):
                 # print "from " + self.state + " to up"
                 self.state = 'up'
                 # LED to red
-                sense.clear((255, 0, 0))
+                # sense.clear((255, 0, 0))
+                sense.set_pixels(get_pixel_map('red'))
                 flag = True
             if flag:
                 print "state changed to " + self.state
